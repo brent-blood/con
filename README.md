@@ -47,11 +47,11 @@ If that works, you're ready to try using this program! Invoke it like:
 
 ```con switch```
 
-This assumes that your local resolver is configured with "foo.example.com" as a suffix to search for short names. `con` will prepend "_console." and then the local resolver will append ".foo.example.com." before resolving the name. This should then initiate an ssh connection via the hostname and port found in DNS and prompt you for a password (or not if you use a key). When you want to disconnect, if you type "exit" it'll log you out of the console connection via `getty` but it'll just ask for you to login again (because this is a serial console). Instead, you'll need to signal to ssh that you're done and you do that by pressing ENTER followed by a tilde and dot (~.). Note that if you have multiple ssh connections chained together (ssh to one host to the ssh to the serial port) you'll need to supply an extra tilde (~) for every host in the chain to ignore it so that the final one actually acts - otherwise the "outer" ssh connection will disconnect which may not be what you want.
+This assumes that your local resolver is configured with "foo.example.com" as a suffix to search for short names. `con` will prepend "_console." and then the local resolver will append ".foo.example.com." before resolving the name. This should then initiate an ssh connection via the hostname and port found in DNS and prompt you for a password (or not if you use a key). When you want to disconnect, if you type "exit" it'll log you out of the console connection via `getty` but it'll just ask for you to login again (because this is a serial console). Instead, you'll need to signal to ssh that you're done and you do that by pressing ENTER followed by a tilde and dot (\~.). Note that if you have multiple ssh connections chained together (ssh to one host to the ssh to the serial port) you'll need to supply an extra tilde (\~) for every host in the chain to ignore it so that the final one actually acts - otherwise the "outer" ssh connection will disconnect which may not be what you want.
 
 For telnet connection exit with ctrl+] (control and right bracket). This will drop you to a "telnet>" prompt and you an then type "quit" or ctrl+d to get out.
 
-`ipmitool` handles exiting similar to ssh: ~.
+`ipmitool` handles exiting similar to ssh: \~.
 
 In any case, the `con` program replaces itself in memory with the appropriate network client and when that exits, you're back to your shell.
 
