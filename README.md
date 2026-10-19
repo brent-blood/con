@@ -2,13 +2,13 @@
 
 *con* is a program that makes acquiring serial console to a remote device across a network easier regardless of where the serial console is attached, the protocol to use, and the TCP port to get to it.
 
-I have an RS232 console server (Perle IOLAN SCR1618) that I plug devices like switches into and it allows me to make them accessible using telnet and ssh via different TCP ports. I have some servers with IPMI that support serial over LAN. And I have other systems (mainly ARM SBCs) that expose console on TTL serial pins that I connect to with USB UARTs to other servers and then make those available over the network using ser2net. Keeping track of how to get serial console when I need it was hard!
+I have an RS232 console server (Perle IOLAN SCR1618) that I plug devices like switches into and it allows me to make them accessible using telnet and ssh via different TCP ports. I have some servers with IPMI that support serial over LAN. And I have other systems (mainly ARM SBCs) that expose console on TTL serial pins that I connect to with USB UARTs to other servers and then make those available over the network using [ser2net](https://github.com/cminyard/ser2net). Keeping track of how to get serial console when I need it was hard!
 
 I discovered SVCB DNS records that allow encoding this sort of information into a service that I was already running, and all I needed was a tool that could query it and use it and I'd be able to effectively say "give me console on box foo" and just get it... and thus this program was born.
 
-## Dependcies
+## Dependencies
 
-This program depends upon SVCB records for console access being properly defined. I use bind 9 but anything nameserver that supports these records should work.
+This program depends upon SVCB records for console access being properly defined. I use bind 9 but any nameserver that supports these records should work.
 
 For the three supported protocols you'll need packages installed that provide their client programs. For telnet you'll need a `telnet` client (on Debian this is inetutils-telnet). For `ssh` use openssh-client (again on Debian). And for ipmi-sol, install `ipmitool`.
 
@@ -47,11 +47,13 @@ If that works, you're ready to try using this program! Invoke it like:
 
 ```con switch```
 
-This should initiate an ssh connection via the hostname and port found in DNS and prompt you for a password (or not if you use a key). When you want to disconnect, if you type "exit" it'll log you out of the console connection via `getty` but it'll just ask for you to login again (because this is a serial console). Instead, you'll need to signal to ssh that you're done and you do that by pressing ENTER followed by a tilde and dot (~.). Note that if you have multiple ssh connections chained together (ssh to one host to the ssh to the serial port) you'll need to supply an extra tilde (~) for every host in the chain to ignore it so that the final one actually acts - otherwise the "outer" ssh connection will disconnect which may not be what you want.
+This assumes that your local resolver is configured with "foo.example.com" as a suffix to search for short names. `con` will prepend "_console." and then the local resolver will append ".foo.example.com." before resolving the name. This should then initiate an ssh connection via the hostname and port found in DNS and prompt you for a password (or not if you use a key). When you want to disconnect, if you type "exit" it'll log you out of the console connection via `getty` but it'll just ask for you to login again (because this is a serial console). Instead, you'll need to signal to ssh that you're done and you do that by pressing ENTER followed by a tilde and dot (~.). Note that if you have multiple ssh connections chained together (ssh to one host to the ssh to the serial port) you'll need to supply an extra tilde (~) for every host in the chain to ignore it so that the final one actually acts - otherwise the "outer" ssh connection will disconnect which may not be what you want.
 
 For telnet connection exit with ctrl+] (control and right bracket). This will drop you to a "telnet>" prompt and you an then type "quit" or ctrl+d to get out.
 
 `ipmitool` handles exiting similar to ssh: ~.
+
+In any case, the `con` program replaces itself in memory with the appropriate network client and when that exits, you're back to your shell.
 
 ## To Do
 
