@@ -163,7 +163,6 @@ void get_username(char *username, size_t max_len) {
     const char *env_user = getenv("USER");
     if (env_user && strlen(env_user) > 0) {
         strlcpy(username, env_user, max_len);
-        fprintf(stderr, "[DEBUG] Using username from environment ($USER): '%s'\n", username);
         return;
     }
 
@@ -220,12 +219,15 @@ void execute_binary(const svc_target_t *target) {
         exec_args[arg_idx++] = port_str;
         exec_args[arg_idx++] = "sol";
         exec_args[arg_idx++] = "activate";
-
+        
+        fprintf(stdout, "Connecting over ipmitool. To disconnect, press ENTER + ~ + .\n");
     } else if (strcmp(target->alpn, "telnet") == 0) {
         bin = "telnet";
         exec_args[arg_idx++] = bin;
         exec_args[arg_idx++] = (char *)target->host;
         exec_args[arg_idx++] = port_str;
+
+        fprintf(stdout, "Connecting over telnet. To disconnect, press ctrl+] then 'quit'\n");
     } else {
         fprintf(stderr, "[ERROR] Unsupported protocol: '%s'\n", target->alpn);
         exit(1);
@@ -233,15 +235,6 @@ void execute_binary(const svc_target_t *target) {
 
     /* Array must be NULL terminiated for execvp. */
     exec_args[arg_idx] = NULL;
-
-    /*
-    fprintf(stderr, "[DEBUG] Executing command construction via execvp:\n -> ");
-    for (int i = 0; exec_args[i] != NULL; i++) {
-        fprintf(stderr, "%s ", exec_args[i]);
-    }
-    fprintf(stderr, "\n\n");
-    */
-
     execvp(bin, exec_args);
 
     /* Note that we are not calling fork and the exec'd program replaces

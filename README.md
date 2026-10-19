@@ -30,22 +30,31 @@ Maybe I'm wrong but I think getting the DNS records correctly setup is going to 
 Within your zone file for foo.example.com you would need records like the following:
 
 ```
+console             IN      A       192.0.2.34
+console             IN      AAAA    2001:DB8::34:1
+server              IN      A       192.0.2.45
+server              IN      AAAA    2001:DB8::34:45
+server-ipmi         IN      A       192.0.2.46
+server-ipmi         IN      AAAA    2001:DB8::34:46
+
 _console.switch     IN      SVCB    1       console.foo.example.com.        port=10001  alpn="ssh"
 _console.server     IN      SVCB    1       server-ipmi.foo.example.com.    port=623    alpn="ipmi-sol"
 _console.sbc        IN      SVCB    1       server.foo.example.com.         port=10010  alpn="telnet"
 ```
 
-`_console` as a prefix is what this program uses to identify the resource. It's not special within SVCB but is what this app chose. After that comes the name of the device that you want console on. Then the class - in this case `IN`. The type of the records are `SVCB` which refers to service binding. Then comes the fully qualified reference to the host that exposes the console - be mindful of the trailing dot! Lastly you encode the port and the application layer protocol negotiation (`alpn`) .
+I don't include A or AAAA records for sbc.foo.example.com because while you'd probably have them, they aren't relevant to this example because `con` doesn't need them. It shouldn't be a big jump, but SVCB records refer to hostnames for the target and the resolver then needs to resolve that name - so the A and AAAA records are used for that.
+
+`_console` as a prefix is what this program uses to identify the resource. It's not special within SVCB but is what I chose for this app. After that comes the name of the device that you want console on. Then the class - in this case `IN`. The type of the records are `SVCB` which refers to service binding, and the priority is 1 (`con` doesn't support multiple priorities). Then comes the fully qualified reference to the host that exposes the console - be mindful of the trailing dot! Lastly you encode the port and the application layer protocol negotiation (`alpn`) .
 
 Three values for `alpn` are supported right now: `telnet`, `ssh`, and `ipmi-sol`. Any other values will cause errors when consumed by this program (but bind won't care when it loads the zone).
 
-Once you have DNS records created I recommend testing it with `dig`. An example command for the switch example above is: `dig SVCB @yournameserver _console.switch.foo.example.com`. If that succeeds in the `ANSWER` section you should see something that looks close to what you put in the zone file.
-
 ## Usage
 
-If that works, you're ready to try using this program! Invoke it like:
+Invoke it like:
 
-```con switch```
+```
+con switch
+```
 
 This assumes that your local resolver is configured with "foo.example.com" as a suffix to search for short names. `con` will prepend "_console." and then the local resolver will append ".foo.example.com." before resolving the name. This should then initiate an ssh connection via the hostname and port found in DNS and prompt you for a password (or not if you use a key). When you want to disconnect, if you type "exit" it'll log you out of the console connection via `getty` but it'll just ask for you to login again (because this is a serial console). Instead, you'll need to signal to ssh that you're done and you do that by pressing ENTER followed by a tilde and dot (\~.). Note that if you have multiple ssh connections chained together (ssh to one host to the ssh to the serial port) you'll need to supply an extra tilde (\~) for every host in the chain to ignore it so that the final one actually acts - otherwise the "outer" ssh connection will disconnect which may not be what you want.
 
@@ -55,9 +64,27 @@ For telnet connection exit with ctrl+] (control and right bracket). This will dr
 
 In any case, the `con` program replaces itself in memory with the appropriate network client and when that exits, you're back to your shell.
 
+## Troubleshooting
+
+Once you have DNS records created I recommend testing it with `dig`. An example command for the switch example above is: `dig SVCB @yournameserver _console.switch.foo.example.com`. If that succeeds in the `ANSWER` section you should see something that looks close to what you put in the zone file.
+
+You should also test the connections outside of `con`. It makes connections using the following recipes:
+
+```
+# telnet <host> <port>
+
+# ssh -l <user> -p <port> <host>
+
+# ipmitool -I lanplus -H <host> -U <user> -p <port> sol activate
+```
+
+If those commands don't succeed, then `con` won't either.
+
 ## To Do
 
 Right now, nothing really. This does what I want.
+
+I could add a way to change the username used for ipmitool and ssh, but `con` uses the $USER environment variable for this now and you can control it that way if needed.
 
 If anyone reading this has other protocols that they want to access, send me a pull request (or ask me nicely).
 
